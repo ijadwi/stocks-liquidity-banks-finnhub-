@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محلل الأسهم الأمريكية — تحليل شامل</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0D1117;
+    --bg2:      #161B22;
+    --bg3:      #1C2230;
+    --border:   rgba(255,255,255,0.08);
+    --text:     #E6EDF3;
+    --muted:    #8B949E;
+    --accent:   #1F6FEB;
+    --green:    #3FB950;
+    --red:      #F85149;
+    --amber:    #D29922;
+    --sup1:     #1F6FEB;
+    --sup2:     #388BFD;
+    --res1:     #F85149;
+    --res2:     #FF7B72;
+    --cur:      #3FB950;
+    --r:        12px;
+    --r-sm:     8px;
+    --font:     'IBM Plex Sans Arabic', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  /* ─── APP SHELL ─── */
+  .app { max-width: 780px; margin: 0 auto; }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .brand {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .brand span { color: var(--accent); }
+
+  .search-wrap {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+  }
+  .search-input {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    padding: 10px 14px;
+    outline: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: border-color .2s;
+    direction: ltr;
+    text-align: center;
+  }
+  .search-input::placeholder { color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-sm);
+    padding: 10px 22px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .search-btn:hover { opacity: .85; }
+  .search-btn:active { transform: scale(.97); }
+
+  /* ─── HEADER CARD ─── */
+  .header-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 22px 24px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(31,111,235,.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .ticker-block {}
+  .ticker-sym {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .ticker-name {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+  .ticker-sector {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    background: rgba(31,111,235,.15);
+    color: var(--sup2);
+    border: 1px solid rgba(31,111,235,.25);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+
+  .price-block { text-align: left; }
+  .price-main {
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    direction: ltr;
+  }
+  .price-chg {
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 5px;
+    direction: ltr;
+  }
+  .price-chg.up { color: var(--green); }
+  .price-chg.down { color: var(--red); }
+  .price-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ─── METRICS ROW ─── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 520px) { .metrics { grid-template-columns: repeat(2,1fr); } }
+  .metric {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .metric-lbl { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+  .metric-val { font-size: 16px; font-weight: 500; color: var(--text); direction: ltr; display: inline-block; }
+  .metric-val.g { color: var(--green); }
+  .metric-val.r { color: var(--red); }
+
+  /* ─── LADDER CARD ─── */
+  .section-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+  }
+  .section-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* ─── LADDER ─── */
+  .ladder { display: flex; flex-direction: column; gap: 0; }
+
+  .rung {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px 100px;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rung:last-child { border-bottom: none; }
+  .rung.current { background: rgba(63,185,80,.05); border-radius: 6px; padding: 9px 8px; margin: 0 -8px; }
+
+  .rung-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .badge-r3 { background: rgba(248,81,73,.08); color: #FF7B72; border: 1px solid rgba(248,81,73,.2); }
+  .badge-r2 { background: rgba(248,81,73,.08); color: #F85149; border: 1px solid rgba(248,81,73,.2); }
+  .badge-r1 { background: rgba(248,81,73,.12); color: #F85149; border: 1px solid rgba(248,81,73,.3); }
+  .badge-cur{ background: rgba(63,185,80,.15); color: #3FB950; border: 1.5px solid rgba(63,185,80,.5); }
+  .badge-s1 { background: rgba(31,111,235,.12); color: #388BFD; border: 1px solid rgba(31,111,235,.3); }
+  .badge-s2 { background: rgba(31,111,235,.08); color: #1F6FEB; border: 1px solid rgba(31,111,235,.2); }
+  .badge-s3 { background: rgba(31,111,235,.06); color: #1F6FEB; border: 1px solid rgba(31,111,235,.15); }
+
+  .rung-bar-wrap {
+    position: relative;
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .rung-bar {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 4px;
+  }
+  .bar-res { background: linear-gradient(90deg, #F85149, #FF7B72); }
+  .bar-cur { background: linear-gradient(90deg, #3FB950, #57E06D); }
+  .bar-sup { background: linear-gradient(90deg, #1F6FEB, #388BFD); }
+
+  .rung-price {
+    font-size: 15px;
+    font-weight: 600;
+    direction: ltr;
+    text-align: left;
+  }
+  .rung-price.r { color: var(--res2); }
+  .rung-price.g { color: var(--green); font-size: 17px; }
+  .rung-price.b { color: var(--sup2); }
+
+  .rung-desc {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ─── PIVOT VISUAL ─── */
+  .pivot-track {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, #042C53 0%, #1F6FEB 35%, #3FB950 55%, #F85149 75%, #7A1F1F 100%);
+    margin: 8px 0 18px;
+  }
+  .pivot-needle {
+    position: absolute;
+    top: -5px;
+    width: 4px;
+    height: 24px;
+    background: #fff;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2px var(--green);
+  }
+  .pivot-needle-label {
+    position: absolute;
+    top: -22px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    white-space: nowrap;
+    direction: ltr;
+  }
+  .pivot-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    direction: ltr;
+  }
+  .pivot-axis span { text-align: center; }
+
+  /* ─── INDICATORS GRID ─── */
+  .ind-grid {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+  }
+  @media (max-width: 480px) { .ind-grid { grid-template-columns: repeat(2,1fr); } }
+  .ind-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 14px;
+    text-align: center;
+  }
+  .ind-name { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .ind-val { font-size: 20px; font-weight: 600; color: var(--text); direction: ltr; display: inline-block; }
+  .ind-sig {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sig-buy  { background: rgba(63,185,80,.15);  color: var(--green); }
+  .sig-neu  { background: rgba(139,148,158,.12); color: var(--muted); }
+  .sig-sell { background: rgba(248,81,73,.12);   color: var(--red); }
+
+  /* ─── MA BARS ─── */
+  .ma-list { display: flex; flex-direction: column; gap: 10px; }
+  .ma-row { display: flex; align-items: center; gap: 12px; }
+  .ma-label { font-size: 12px; color: var(--muted); width: 52px; text-align: right; }
+  .ma-track { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .ma-fill { height: 100%; background: linear-gradient(90deg, #1F6FEB, #3FB950); border-radius: 3px; }
+  .ma-price { font-size: 12px; font-weight: 500; color: var(--text); width: 58px; text-align: left; direction: ltr; }
+  .ma-sig-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─── SENTIMENT / ANALYST ─── */
+  .sentiment-wrap {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .gauge-svg { flex-shrink: 0; }
+  .sent-text { flex: 1; min-width: 180px; }
+  .sent-rating { font-size: 22px; font-weight: 600; color: var(--green); margin-bottom: 6px; }
+  .sent-sub { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .analyst-bar-bg { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin: 8px 0 4px; }
+  .analyst-bar-fill { height: 100%; background: linear-gradient(90deg, #1F6FEB, #3FB950); border-radius: 3px; }
+  .target-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(31,111,235,.1);
+    border: 1px solid rgba(31,111,235,.25);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--sup2);
+    direction: ltr;
+    margin-top: 8px;
+  }
+
+  /* ─── LOADING / ERROR ─── */
+  .state-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .loader {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── DISCLAIMER ─── */
+  .signature { position:fixed; left:16px; bottom:12px; font-size:13px; color:var(--muted); direction:ltr; z-index:9999; pointer-events:none; }
+
+  .disclaimer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 20px;
+    line-height: 1.6;
+  }
+
+  /* ─── DIVIDER CONNECTOR ─── */
+  .ladder-connector {
+    height: 0;
+    border-right: 2px dashed rgba(255,255,255,.07);
+    margin: 0 34px;
+  }
+
+  .quick-tickers {
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:10px;
+  }
+  .ticker-chip {
+    border:1px solid var(--border); background:rgba(255,255,255,.035); color:var(--text);
+    padding:7px 11px; border-radius:999px; cursor:pointer; font-size:11px;
+    transition:.2s ease;
+  }
+  .ticker-chip:hover { transform:translateY(-1px); border-color:var(--accent); background:rgba(255,255,255,.07); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .liq-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin:0 0 18px}
+  .liq-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .liq-title{font-size:17px;font-weight:600}.liq-sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .liq-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .liq-url{flex:1;min-width:240px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);direction:ltr;font-size:12px}
+  .liq-btn{border:0;border-radius:8px;background:var(--accent);color:#fff;padding:9px 13px;cursor:pointer;font-family:var(--font)}
+  .liq-btn.secondary{background:var(--bg3);border:1px solid var(--border)}
+  .liq-status{font-size:12px;color:var(--muted);margin:8px 0 12px}
+  .liq-table-wrap{overflow:auto;max-height:560px;border:1px solid var(--border);border-radius:8px}
+  .liq-table{width:100%;border-collapse:collapse;min-width:620px;font-size:12px}
+  .liq-table th,.liq-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+  .liq-table th{position:sticky;top:0;background:var(--bg3);color:var(--muted);z-index:1}
+  .liq-table td.num,.liq-table th.num{direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+  .liq-table tr:hover td{background:rgba(255,255,255,.025)}
+  .liq-up{color:var(--green)}.liq-down{color:var(--red)}
+  @media(max-width:600px){.liq-panel{padding:13px}.liq-title{font-size:15px}}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">📊 <span>محلل</span> جميع الأسهم الأمريكية</div>
+    <div class="search-wrap">
+      <input class="search-input" id="tickerInput" type="text" placeholder="أدخل أي رمز سهم أمريكي... BE / VRT / SKHY" maxlength="10">
+      <button class="search-btn" onclick="analyze()">تحليل</button>
+    </div>
+    <div class="quick-tickers" aria-label="أسهم مقترحة">
+      <button class="ticker-chip" onclick="quickAnalyze('BE')">BE · Bloom Energy</button>
+      <button class="ticker-chip" onclick="quickAnalyze('VRT')">VRT · Vertiv</button>
+      <button class="ticker-chip" onclick="quickAnalyze('SKHY')">SKHY · Sky Harbour</button>
+    </div>
+  </div>
+
+
+  <section class="liq-panel" aria-label="ماسح سيولة الأسهم">
+    <div class="liq-head"><div><div class="liq-title">💧 ماسح سيولة الأسهم الأمريكية</div><div class="liq-sub">يرتب الأسهم حسب متوسط السيولة التقديري بالدولار (السعر الحالي × متوسط حجم التداول 10 أيام، إن توفر).</div></div><button class="liq-btn secondary" onclick="refreshLiquidity(true)">تحديث الآن</button></div>
+    <div class="liq-controls"><input id="liqDataUrl" class="liq-url" placeholder="ضع رابط latest.json من GitHub هنا" aria-label="رابط ملف البيانات"><button class="liq-btn" onclick="saveLiquidityUrl()">ربط مصدر البيانات</button></div>
+    <div class="liq-status" id="liqStatus">لم يتم ربط ملف بيانات بعد. اربط رابط latest.json المنشور على GitHub لعرض الأسهم.</div>
+    <div class="liq-table-wrap"><table class="liq-table"><thead><tr><th>#</th><th>الرمز</th><th>اسم الشركة</th><th class="num">السعر ($)</th><th class="num">متوسط الحجم (10 أيام)</th><th class="num">متوسط السيولة التقديري ($)</th><th class="num">التغير %</th></tr></thead><tbody id="liqRows"><tr><td colspan="7" style="text-align:center;color:var(--muted)">بانتظار البيانات</td></tr></tbody></table></div>
+    <div class="liq-sub" style="margin-top:10px">تنبيه Finnhub: /quote لا يعيد حجم التداول اللحظي. السيولة المعروضة تقدير مبني على متوسط حجم التداول إذا كان متاحًا في خطتك، وليست قيمة تداول اليوم الفعلية. تحديث الواجهة كل دقيقة لا يعني وصول بيانات جديدة كل دقيقة؛ GitHub Actions مجدول كل 5 دقائق، ويتم تحديث الأسهم على دفعات بسبب حدود API.</div>
+  </section>
+
+  <!-- MAIN OUTPUT -->
+  <div id="output">
+    <div class="state-box">
+      <div style="font-size:40px;margin-bottom:12px">📈</div>
+      أدخل رمز السهم وانقر <strong>تحليل</strong> لعرض مستويات الدعم والمقاومة
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ⚠️ هذا تحليل فني للمعلومات فقط · ليس نصيحة استثمارية · البيانات تقريبية وتعليمية
+  </div>
+  <div style="position:fixed;left:16px;bottom:12px;font-size:13px;color:var(--muted);direction:ltr;z-index:9999;pointer-events:none">Ismail Jadwi</div>
+</div>
+
+<script>
+// ── Embedded stock data store (extendable) ──────────────────────────────────
+const STOCKS = {
+  MU: {
+    name: 'Micron Technology',
+    sector: 'أشباه الموصلات · ذاكرة AI',
+    price: 956.08,
+    prevClose: 933.44,
+    open: 932.03,
+    high: 958.00,
+    low:  927.16,
+    week52High: 1255.00,
+    week52Low:  118.52,
+    rsi: 55.8,
+    macd: 3.56,
+    beta: 2.24,
+    pe: 21.6,
+    fwdPe: 6.6,
+    roe: 66.6,
+    ma5:   939.56,
+    ma50:  931.10,
+    ma200: 909.08,
+    pivotFib: 932.79,
+    analystTarget: 1513,
+    analystBuy: 44,
+    analystSell: 0,
+    earningsDate: '30 سبتمبر 2026',
+    resistance: [
+      { label: 'مقاومة 3', price: 1255, desc: 'أعلى مستوى تاريخي (ATH)', cls: 'badge-r3', bar: 'bar-res', barW: '100%', barL: '0%' },
+      { label: 'مقاومة 2', price: 1036, desc: 'قمة الشهر الماضي',        cls: 'badge-r2', bar: 'bar-res', barW: '75%',  barL: '25%' },
+      { label: 'مقاومة 1', price: 975,  desc: 'مقاومة فورية',           cls: 'badge-r1', bar: 'bar-res', barW: '50%',  barL: '50%' },
+    ],
+    support: [
+      { label: 'دعم 1', price: 933, desc: 'إغلاق أمس · MA50',         cls: 'badge-s1', bar: 'bar-sup', barW: '80%', barR: '0%' },
+      { label: 'دعم 2', price: 910, desc: 'منطقة $900–$910',           cls: 'badge-s2', bar: 'bar-sup', barW: '60%', barR: '0%' },
+      { label: 'دعم 3', price: 860, desc: 'خط اتجاه يومي',             cls: 'badge-s3', bar: 'bar-sup', barW: '40%', barR: '0%' },
+    ],
+  },
+  NVDA: {
+    name: 'NVIDIA Corporation',
+    sector: 'معالجات رسومية · AI',
+    price: 131.45,
+    prevClose: 128.90,
+    open: 129.20,
+    high: 133.10,
+    low:  128.50,
+    week52High: 153.13,
+    week52Low:  60.27,
+    rsi: 62.3,
+    macd: 2.18,
+    beta: 1.95,
+    pe: 44.2,
+    fwdPe: 28.5,
+    roe: 85.3,
+    ma5:   130.20,
+    ma50:  121.80,
+    ma200: 105.40,
+    pivotFib: 130.20,
+    analystTarget: 175,
+    analystBuy: 52,
+    analystSell: 1,
+    earningsDate: 'نوفمبر 2026',
+    resistance: [
+      { label: 'مقاومة 3', price: 153, desc: 'أعلى مستوى تاريخي',     cls: 'badge-r3', bar: 'bar-res', barW: '100%', barL: '0%' },
+      { label: 'مقاومة 2', price: 140, desc: 'مستوى نفسي',              cls: 'badge-r2', bar: 'bar-res', barW: '70%',  barL: '30%' },
+      { label: 'مقاومة 1', price: 135, desc: 'مقاومة فورية',            cls: 'badge-r1', bar: 'bar-res', barW: '45%',  barL: '55%' },
+    ],
+    support: [
+      { label: 'دعم 1', price: 128, desc: 'إغلاق أمس',                cls: 'badge-s1', bar: 'bar-sup', barW: '75%', barR: '0%' },
+      { label: 'دعم 2', price: 121, desc: 'MA50',                       cls: 'badge-s2', bar: 'bar-sup', barW: '55%', barR: '0%' },
+      { label: 'دعم 3', price: 105, desc: 'MA200',                      cls: 'badge-s3', bar: 'bar-sup', barW: '35%', barR: '0%' },
+    ],
+  },
+  AAPL: {
+    name: 'Apple Inc.',
+    sector: 'أجهزة ذكية · منصات',
+    price: 228.35,
+    prevClose: 226.50,
+    open: 226.80,
+    high: 229.90,
+    low:  225.60,
+    week52High: 260.10,
+    week52Low:  164.08,
+    rsi: 58.5,
+    macd: 1.92,
+    beta: 1.20,
+    pe: 33.8,
+    fwdPe: 29.1,
+    roe: 147.0,
+    ma5:   227.40,
+    ma50:  220.30,
+    ma200: 205.60,
+    pivotFib: 227.30,
+    analystTarget: 255,
+    analystBuy: 35,
+    analystSell: 3,
+    earningsDate: 'أكتوبر 2026',
+    resistance: [
+      { label: 'مقاومة 3', price: 260, desc: 'أعلى مستوى تاريخي',      cls: 'badge-r3', bar: 'bar-res', barW: '100%', barL: '0%' },
+      { label: 'مقاومة 2', price: 240, desc: 'مستوى نفسي',              cls: 'badge-r2', bar: 'bar-res', barW: '65%',  barL: '35%' },
+      { label: 'مقاومة 1', price: 232, desc: 'مقاومة فورية',            cls: 'badge-r1', bar: 'bar-res', barW: '42%',  barL: '58%' },
+    ],
+    support: [
+      { label: 'دعم 1', price: 225, desc: 'أدنى اليوم · MA5',          cls: 'badge-s1', bar: 'bar-sup', barW: '78%', barR: '0%' },
+      { label: 'دعم 2', price: 220, desc: 'MA50',                       cls: 'badge-s2', bar: 'bar-sup', barW: '58%', barR: '0%' },
+      { label: 'دعم 3', price: 205, desc: 'MA200',                      cls: 'badge-s3', bar: 'bar-sup', barW: '38%', barR: '0%' },
+    ],
+  },
+  TSLA: {
+    name: 'Tesla Inc.',
+    sector: 'سيارات كهربائية · طاقة',
+    price: 248.90,
+    prevClose: 244.20,
+    open: 244.80,
+    high: 251.30,
+    low:  243.10,
+    week52High: 358.64,
+    week52Low:  138.80,
+    rsi: 52.1,
+    macd: 0.85,
+    beta: 2.30,
+    pe: 68.5,
+    fwdPe: 42.0,
+    roe: 18.5,
+    ma5:   246.50,
+    ma50:  238.40,
+    ma200: 218.70,
+    pivotFib: 246.20,
+    analystTarget: 280,
+    analystBuy: 25,
+    analystSell: 8,
+    earningsDate: 'أكتوبر 2026',
+    resistance: [
+      { label: 'مقاومة 3', price: 358, desc: 'أعلى مستوى 52 أسبوع',    cls: 'badge-r3', bar: 'bar-res', barW: '100%', barL: '0%' },
+      { label: 'مقاومة 2', price: 280, desc: 'هدف المحللين',             cls: 'badge-r2', bar: 'bar-res', barW: '68%',  barL: '32%' },
+      { label: 'مقاومة 1', price: 255, desc: 'مقاومة فورية',            cls: 'badge-r1', bar: 'bar-res', barW: '44%',  barL: '56%' },
+    ],
+    support: [
+      { label: 'دعم 1', price: 243, desc: 'أدنى اليوم',                 cls: 'badge-s1', bar: 'bar-sup', barW: '75%', barR: '0%' },
+      { label: 'دعم 2', price: 238, desc: 'MA50',                       cls: 'badge-s2', bar: 'bar-sup', barW: '55%', barR: '0%' },
+      { label: 'دعم 3', price: 218, desc: 'MA200',                      cls: 'badge-s3', bar: 'bar-sup', barW: '35%', barR: '0%' },
+    ],
+  },
+  AMZN: {
+    name: 'Amazon.com Inc.',
+    sector: 'تجارة إلكترونية · سحابة AWS',
+    price: 198.40,
+    prevClose: 195.80,
+    open: 196.20,
+    high: 199.60,
+    low:  194.90,
+    week52High: 229.50,
+    week52Low:  151.50,
+    rsi: 60.4,
+    macd: 2.45,
+    beta: 1.55,
+    pe: 37.2,
+    fwdPe: 28.0,
+    roe: 22.4,
+    ma5:   197.30,
+    ma50:  189.60,
+    ma200: 178.20,
+    pivotFib: 196.80,
+    analystTarget: 230,
+    analystBuy: 48,
+    analystSell: 0,
+    earningsDate: 'أكتوبر 2026',
+    resistance: [
+      { label: 'مقاومة 3', price: 229, desc: 'أعلى 52 أسبوع',          cls: 'badge-r3', bar: 'bar-res', barW: '100%', barL: '0%' },
+      { label: 'مقاومة 2', price: 210, desc: 'مستوى نفسي',              cls: 'badge-r2', bar: 'bar-res', barW: '65%',  barL: '35%' },
+      { label: 'مقاومة 1', price: 202, desc: 'مقاومة فورية',            cls: 'badge-r1', bar: 'bar-res', barW: '42%',  barL: '58%' },
+    ],
+    support: [
+      { label: 'دعم 1', price: 195, desc: 'إغلاق أمس',                 cls: 'badge-s1', bar: 'bar-sup', barW: '78%', barR: '0%' },
+      { label: 'دعم 2', price: 189, desc: 'MA50',                       cls: 'badge-s2', bar: 'bar-sup', barW: '58%', barR: '0%' },
+      { label: 'دعم 3', price: 178, desc: 'MA200',                      cls: 'badge-s3', bar: 'bar-sup', barW: '38%', barR: '0%' },
+    ],
+  },
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmt(n, dec=2) { if(n===null || n===undefined || !Number.isFinite(Number(n))) return '—'; return Number(n).toLocaleString('en-US', {minimumFractionDigits:dec, maximumFractionDigits:dec}); }
+function fmtPrice(n)   { return (n===null || n===undefined || !Number.isFinite(Number(n))) ? '—' : '$' + fmt(n); }
+
+function chgPct(price, prev) { return ((price - prev) / prev * 100); }
+
+function pivotPct(price, low, high) {
+  return Math.max(5, Math.min(95, ((price - low) / (high - low)) * 100));
+}
+
+function rsiSignal(v) {
+  if (v > 70) return ['sig-sell','تشبع شرائي'];
+  if (v < 30) return ['sig-buy','تشبع بيعي (فرصة)'];
+  if (v > 55) return ['sig-buy','شراء'];
+  if (v < 45) return ['sig-neu','ضغط بيعي'];
+  return ['sig-neu','محايد'];
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+async function fetchYahooChart(sym) {
+  // Yahoo Finance source. The public quote page is finance.yahoo.com; the chart JSON
+  // endpoint is used because a local HTML file cannot reliably read the Yahoo quote HTML
+  // itself due to browser CORS restrictions. Try both Yahoo API hosts for resilience.
+  const hosts = ['query1.finance.yahoo.com','query2.finance.yahoo.com'];
+  let lastErr = null;
+  for (const host of hosts) {
+    try {
+      const url = `https://${host}/v8/finance/chart/${encodeURIComponent(sym)}?range=2y&interval=1d&events=div%2Csplits&includeAdjustedClose=true`;
+      const res = await fetch(url, {cache:'no-store', headers:{'Accept':'application/json'}});
+      if (!res.ok) throw new Error(`Yahoo Finance HTTP ${res.status}`);
+      const j = await res.json();
+      const r = j?.chart?.result?.[0];
+      if (r && Array.isArray(r.timestamp) && r.timestamp.length) return r;
+      const msg = j?.chart?.error?.description;
+      throw new Error(msg || 'Yahoo Finance لم يُرجع بيانات');
+    } catch (e) { lastErr = e; }
+  }
+  throw new Error(`تعذر جلب بيانات ${sym} من Yahoo Finance. ${lastErr?.message || ''}`);
+}
+function sma(a,n){return a.length<n?a.at(-1):a.slice(-n).reduce((x,y)=>x+y,0)/n;}
+function emaSeries(a,n){if(!a.length)return[];const k=2/(n+1),o=[a[0]];for(let i=1;i<a.length;i++)o.push(a[i]*k+o[i-1]*(1-k));return o;}
+function calcRSI(a,n=14){if(a.length<n+1)return 50;let g=0,l=0;for(let i=a.length-n;i<a.length;i++){const d=a[i]-a[i-1];if(d>=0)g+=d;else l-=d;}return l===0?100:100-100/(1+g/l);}
+function calcMACD(a){if(a.length<35)return 0;const e12=emaSeries(a,12),e26=emaSeries(a,26),m=e12.map((v,i)=>v-e26[i]);const sig=emaSeries(m.slice(25),9);return (m[m.length-1]||0)-(sig[sig.length-1]||0);}
+async function buildLiveStock(sym){
+ const r=await fetchYahooChart(sym);
+ const q=r.indicators?.quote?.[0]||{};
+ const clean=a=>(a||[]).map(Number).filter(Number.isFinite);
+ const c=clean(q.close),h=clean(q.high),l=clean(q.low),o=clean(q.open);
+ if(c.length<30) throw new Error('البيانات التاريخية غير كافية');
+ const m=r.meta||{};
+ const n=(v,f)=>Number.isFinite(Number(v))?Number(v):f;
+ const price=n(m.regularMarketPrice,c[c.length-1]);
+ const prev=n(m.previousClose,c.length>1?c[c.length-2]:price);
+ const open=n(m.regularMarketOpen,o.length?o[o.length-1]:price);
+ const high=n(m.regularMarketDayHigh,h.length?h[h.length-1]:price);
+ const low=n(m.regularMarketDayLow,l.length?l[l.length-1]:price);
+ const wh=n(m.fiftyTwoWeekHigh,Math.max(...h));
+ const wl=n(m.fiftyTwoWeekLow,Math.min(...l));
+ const rH=Math.max(...h.slice(-60)), rL=Math.min(...l.slice(-60));
+ const ma5=sma(c,5),ma50=sma(c,50),ma200=sma(c,200),rsi=calcRSI(c),macd=calcMACD(c);
+ const R=[price*1.03,price*1.06,rH].filter(x=>Number.isFinite(x)&&x>price).sort((a,b)=>a-b);
+ const S=[price*.98,price*.96,rL].filter(x=>Number.isFinite(x)&&x<price).sort((a,b)=>b-a);
+ while(R.length<3)R.push(price*(1+.03*(R.length+1)));
+ while(S.length<3)S.push(price*(1-.03*(S.length+1)));
+ return {name:m.longName||m.shortName||sym,sector:'سهم أمريكي · بيانات سوق مباشرة',price,prevClose:prev,open,high,low,week52High:wh,week52Low:wl,rsi:+rsi.toFixed(1),macd:+macd.toFixed(2),beta:null,pe:null,fwdPe:null,roe:null,ma5,ma50,ma200,pivotFib:ma50,analystTarget:null,analystBuy:null,analystSell:null,earningsDate:null,resistance:[{label:'مقاومة 3',price:R[2],desc:'قمة 60 يوماً',cls:'badge-r3',bar:'bar-res',barW:'100%',barL:'0%'},{label:'مقاومة 2',price:R[1],desc:'منطقة مقاومة',cls:'badge-r2',bar:'bar-res',barW:'70%',barL:'30%'},{label:'مقاومة 1',price:R[0],desc:'مقاومة فورية',cls:'badge-r1',bar:'bar-res',barW:'45%',barL:'55%'}],support:[{label:'دعم 1',price:S[0],desc:'دعم قريب',cls:'badge-s1',bar:'bar-sup',barW:'80%',barR:'0%'},{label:'دعم 2',price:S[1],desc:'منطقة دعم / MA50',cls:'badge-s2',bar:'bar-sup',barW:'60%',barR:'0%'},{label:'دعم 3',price:S[2],desc:'دعم سعري',cls:'badge-s3',bar:'bar-sup',barW:'40%',barR:'0%'}]};
+}
+function quickAnalyze(symbol){
+  const input=document.getElementById('tickerInput');
+  input.value=symbol;
+  analyze();
+}
+
+async function analyze(){const raw=document.getElementById('tickerInput').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');if(!raw)return;document.getElementById('output').innerHTML=`<div class="state-box"><div class="loader"></div>جاري جلب وتحليل بيانات <strong>${raw}</strong>...</div>`;try{let d;try{d=await buildLiveStock(raw)}catch(e){d=STOCKS[raw];if(!d)throw e;}render(raw,d)}catch(e){document.getElementById('output').innerHTML=`<div class="state-box"><div style="font-size:36px;margin-bottom:12px">⚠️</div>تعذر تحليل الرمز <strong style="color:var(--red)">${raw}</strong>.<br><span style="font-size:12px;margin-top:8px;display:block">مصدر البيانات: Yahoo Finance · تأكد من الاتصال بالإنترنت والسماح بالاتصال بـ Yahoo Finance.</span><span style="font-size:11px;margin-top:8px;display:block;color:var(--muted)">${String(e?.message||'خطأ غير معروف').replace(/[<>]/g,'')}</span></div>`}}
+
+function render(sym, d) {
+  const chg    = d.price - d.prevClose;
+  const chgP   = chgPct(d.price, d.prevClose);
+  const up     = chg >= 0;
+  const chgStr = (up ? '+' : '') + fmtPrice(chg) + ' (' + (up?'+':'') + fmt(chgP) + '%)';
+  const today  = new Date().toLocaleDateString('ar-SA', {year:'numeric', month:'long', day:'numeric'});
+
+  const pivPct = pivotPct(d.price, d.week52Low, d.week52High);
+  const [rsiCls, rsiLbl] = rsiSignal(d.rsi);
+  const macdCls = d.macd > 0 ? 'sig-buy' : 'sig-sell';
+  const macdLbl = d.macd > 0 ? 'شراء' : 'بيع';
+  const betaLbl = d.beta==null ? 'غير متاح' : d.beta > 2 ? 'تقلب عالٍ جداً' : d.beta > 1.5 ? 'تقلب عالٍ' : 'تقلب معتدل';
+  const peLbl   = d.pe==null ? 'غير متاح' : d.pe < 20 ? 'رخيص' : d.pe < 35 ? 'معقول' : 'مرتفع';
+  const roeLbl  = d.roe==null ? 'غير متاح' : d.roe > 40 ? 'ممتاز' : d.roe > 15 ? 'جيد' : 'ضعيف';
+
+  const ma5Pct  = Math.min(100, (d.price / d.ma5 - 1) * 200 + 50);
+  const ma50Pct = Math.min(100, (d.price / d.ma50 - 1) * 200 + 50);
+  const ma200Pct= Math.min(100, (d.price / d.ma200 - 1) * 200 + 50);
+
+  const analystPct = (d.analystBuy!=null && d.analystSell!=null) ? Math.round(d.analystBuy / (d.analystBuy + d.analystSell + 1) * 100) : 0;
+
+  // Build ladder rungs
+  function rung(r, isCurrent) {
+    const priceClass = isCurrent ? 'g' : r.cls.includes('r') ? 'r' : 'b';
+    const barStyle = r.barR !== undefined
+      ? `width:${r.barW};left:0;`
+      : `width:${r.barW};left:${r.barL};`;
+    return `
+      <div class="rung${isCurrent ? ' current' : ''}">
+        <span class="rung-badge ${r.cls}">${r.label}</span>
+        <div class="rung-bar-wrap">
+          <div class="rung-bar ${r.bar}" style="${barStyle}"></div>
+        </div>
+        <span class="rung-price ${priceClass}">${fmtPrice(r.price)}</span>
+        <span class="rung-desc">${r.desc}</span>
+      </div>`;
+  }
+
+  const currentRung = {
+    label: '● السعر الآن', price: d.price, desc: 'السعر الحالي للسهم',
+    cls: 'badge-cur', bar: 'bar-cur', barW: '65%', barL: '18%'
+  };
+
+  document.getElementById('output').innerHTML = `
+
+    <!-- HEADER CARD -->
+    <div class="header-card">
+      <div class="ticker-block">
+        <div class="ticker-sym">${sym}</div>
+        <div class="ticker-name">${d.name}</div>
+        <div class="ticker-sector">${d.sector}</div>
+      </div>
+      <div class="price-block">
+        <div class="price-main">${fmtPrice(d.price)}</div>
+        <div class="price-chg ${up?'up':'down'}">${up?'▲':'▼'} ${chgStr}</div>
+        <div class="price-date">${today} · نطاق اليوم: ${fmtPrice(d.low)} – ${fmtPrice(d.high)}</div>
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-lbl">افتتاح</div>
+        <div class="metric-val">${fmtPrice(d.open)}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">أعلى اليوم</div>
+        <div class="metric-val g">${fmtPrice(d.high)}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">أدنى اليوم</div>
+        <div class="metric-val r">${fmtPrice(d.low)}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">52 أسبوع</div>
+        <div class="metric-val" style="font-size:12px">${fmtPrice(d.week52Low)} – ${fmtPrice(d.week52High)}</div>
+      </div>
+    </div>
+
+    <!-- LADDER -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-dot" style="background:var(--red)"></div>
+        مستويات الدعم والمقاومة
+      </div>
+      <div class="ladder">
+        ${d.resistance.map(r => rung(r,false)).join('<div class="ladder-connector" style="height:4px"></div>')}
+        <div class="ladder-connector" style="height:8px;border-color:rgba(63,185,80,.25)"></div>
+        ${rung(currentRung, true)}
+        <div class="ladder-connector" style="height:8px;border-color:rgba(31,111,235,.2)"></div>
+        ${d.support.map(r => rung(r,false)).join('<div class="ladder-connector" style="height:4px"></div>')}
+      </div>
+    </div>
+
+    <!-- PIVOT POINT -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-dot" style="background:var(--amber)"></div>
+        مقياس المدى — نقطة المحور Fibonacci: ${fmtPrice(d.pivotFib)}
+      </div>
+      <div style="position:relative;margin: 28px 4px 8px;">
+        <div class="pivot-track"></div>
+        <div class="pivot-needle" style="left:${pivPct}%">
+          <div class="pivot-needle-label">${fmtPrice(d.price)}</div>
+        </div>
+      </div>
+      <div class="pivot-axis">
+        <span style="color:var(--sup2)">دعم 3<br>${fmtPrice(d.support[2].price)}</span>
+        <span style="color:var(--sup2)">دعم 1<br>${fmtPrice(d.support[0].price)}</span>
+        <span style="color:var(--muted)">محور<br>${fmtPrice(d.pivotFib)}</span>
+        <span style="color:var(--res2)">مقاومة 1<br>${fmtPrice(d.resistance[2].price)}</span>
+        <span style="color:var(--res1)">مقاومة 3<br>${fmtPrice(d.resistance[0].price)}</span>
+      </div>
+    </div>
+
+    <!-- INDICATORS -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-dot" style="background:var(--accent)"></div>
+        المؤشرات الفنية
+      </div>
+      <div class="ind-grid">
+        <div class="ind-item">
+          <div class="ind-name">RSI (14)</div>
+          <div class="ind-val">${d.rsi}</div>
+          <div class="ind-sig ${rsiCls}">${rsiLbl}</div>
+        </div>
+        <div class="ind-item">
+          <div class="ind-name">MACD</div>
+          <div class="ind-val">${fmt(d.macd,2)}</div>
+          <div class="ind-sig ${macdCls}">${macdLbl}</div>
+        </div>
+        <div class="ind-item">
+          <div class="ind-name">Beta</div>
+          <div class="ind-val">${d.beta==null?'—':d.beta}</div>
+          <div class="ind-sig sig-neu">${betaLbl}</div>
+        </div>
+        <div class="ind-item">
+          <div class="ind-name">P/E</div>
+          <div class="ind-val">${d.pe==null?'—':d.pe+'x'}</div>
+          <div class="ind-sig sig-neu">${d.pe==null?'غير متاح':peLbl}</div>
+        </div>
+        <div class="ind-item">
+          <div class="ind-name">Fwd P/E</div>
+          <div class="ind-val">${d.fwdPe==null?'—':d.fwdPe+'x'}</div>
+          <div class="ind-sig sig-neu">${d.fwdPe==null?'غير متاح':(d.fwdPe<20?'رخيص':'معقول')}</div>
+        </div>
+        <div class="ind-item">
+          <div class="ind-name">ROE</div>
+          <div class="ind-val">${d.roe==null?'—':d.roe+'%'}</div>
+          <div class="ind-sig sig-neu">${d.roe==null?'غير متاح':roeLbl}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVING AVERAGES -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-dot" style="background:var(--green)"></div>
+        المتوسطات المتحركة
+      </div>
+      <div class="ma-list">
+        <div class="ma-row">
+          <div class="ma-label">MA 5</div>
+          <div class="ma-track"><div class="ma-fill" style="width:${Math.min(100,ma5Pct)}%"></div></div>
+          <div class="ma-price">${fmtPrice(d.ma5)}</div>
+          <div class="ma-sig-dot" style="background:${d.price>d.ma5?'var(--green)':'var(--red)'}"></div>
+        </div>
+        <div class="ma-row">
+          <div class="ma-label">MA 50</div>
+          <div class="ma-track"><div class="ma-fill" style="width:${Math.min(100,ma50Pct)}%"></div></div>
+          <div class="ma-price">${fmtPrice(d.ma50)}</div>
+          <div class="ma-sig-dot" style="background:${d.price>d.ma50?'var(--green)':'var(--red)'}"></div>
+        </div>
+        <div class="ma-row">
+          <div class="ma-label">MA 200</div>
+          <div class="ma-track"><div class="ma-fill" style="width:${Math.min(100,ma200Pct)}%"></div></div>
+          <div class="ma-price">${fmtPrice(d.ma200)}</div>
+          <div class="ma-sig-dot" style="background:${d.price>d.ma200?'var(--green)':'var(--red)'}"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYST SENTIMENT -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-dot" style="background:var(--green)"></div>
+        توصية المحللين
+      </div>
+      <div class="sentiment-wrap">
+        <svg class="gauge-svg" width="120" height="72" viewBox="0 0 120 72" role="img" aria-label="مقياس التوصية">
+          <defs>
+            <linearGradient id="gg" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#F85149"/>
+              <stop offset="40%" stop-color="#D29922"/>
+              <stop offset="70%" stop-color="#3FB950"/>
+              <stop offset="100%" stop-color="#1D9E75"/>
+            </linearGradient>
+          </defs>
+          <path d="M12 66 A 48 48 0 0 1 108 66" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M12 66 A 48 48 0 0 1 108 66" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round"/>
+          <line x1="60" y1="66" x2="${60 + 44 * Math.cos(Math.PI - Math.PI*(analystPct/100))}" y2="${66 + 44 * -Math.abs(Math.sin(Math.PI*(analystPct/100)))}" stroke="#3FB950" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="60" cy="66" r="5" fill="#3FB950"/>
+        </svg>
+        <div class="sent-text">
+          <div class="sent-rating">${d.analystBuy==null ? 'غير متاح ◐' : (analystPct >= 80 ? 'Strong Buy ●' : analystPct >= 60 ? 'Buy ●' : 'Neutral ◐')}</div>
+          <div class="analyst-bar-bg"><div class="analyst-bar-fill" style="width:${d.analystBuy==null?0:analystPct}%"></div></div>
+          <div class="sent-sub">${d.analystBuy==null ? "بيانات المحللين غير متاحة عبر مصدر السوق" : d.analystBuy+" محلل شراء · "+d.analystSell+" بيع"}</div>
+          <div class="sent-sub">موعد النتائج: <strong>${d.earningsDate || "غير متاح"}</strong></div>
+          <div class="target-pill">🎯 هدف المحللين ${d.analystTarget==null ? "غير متاح" : fmtPrice(d.analystTarget)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+// ── GitHub-hosted liquidity scanner ─────────────────────────────────────────
+const LIQ_URL_KEY = 'ismailLiquidityJsonUrl';
+const liqMoney = n => Number.isFinite(Number(n)) ? '$' + Number(n).toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
+const liqNum = n => Number.isFinite(Number(n)) ? Number(n).toLocaleString('en-US',{maximumFractionDigits:2}) : '—';
+function saveLiquidityUrl(){
+  const url=document.getElementById('liqDataUrl').value.trim();
+  if(!/^https:\/\//i.test(url)){document.getElementById('liqStatus').textContent='أدخل رابط HTTPS مباشر لملف JSON المنشور على GitHub.';return;}
+  localStorage.setItem(LIQ_URL_KEY,url); refreshLiquidity(true);
+}
+async function refreshLiquidity(manual=false){
+  const input=document.getElementById('liqDataUrl'); const status=document.getElementById('liqStatus');
+  const url=(input.value.trim()||localStorage.getItem(LIQ_URL_KEY)||'').trim();
+  if(!url){if(manual)status.textContent='لم يتم تحديد رابط JSON. انشر ملف data/latest.json ثم ضع رابطه هنا.';return;}
+  input.value=url; status.textContent='جاري تحميل بيانات السيولة…';
+  try{
+    const res=await fetch(url+(url.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json(); const stocks=Array.isArray(data.stocks)?data.stocks:[];
+    if(!stocks.length) throw new Error('ملف JSON لا يحتوي على stocks أو أن القائمة فارغة');
+    stocks.sort((a,b)=>(Number(b.dollar_volume)||0)-(Number(a.dollar_volume)||0));
+    document.getElementById('liqRows').innerHTML=stocks.map((x,i)=>{
+      const ch=Number(x.change_pct); const chClass=Number.isFinite(ch)?(ch>0?'liq-up':ch<0?'liq-down':''):'';
+      const sym=String(x.symbol||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const name=String(x.name||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      return `<tr><td>${i+1}</td><td><button class="ticker-chip" onclick="document.getElementById('tickerInput').value='${sym}';analyze()">${sym}</button></td><td>${name}</td><td class="num">${liqNum(x.price)}</td><td class="num">${x.avg_volume_10d==null?'—':liqNum(x.avg_volume_10d)}</td><td class="num">${x.dollar_volume==null?'—':liqMoney(x.dollar_volume)}</td><td class="num ${chClass}">${Number.isFinite(ch)?(ch>0?'+':'')+ch.toFixed(2)+'%':'—'}</td></tr>`;
+    }).join('');
+    const when=data.generated_at_utc?new Date(data.generated_at_utc).toLocaleString():'وقت التحديث غير متوفر';
+    status.textContent=`${stocks.length.toLocaleString()} سهم | آخر تحديث من المصدر: ${when} | المصدر: ${data.provider||'Finnhub'} | ${data.feed_note||''} | الأسهم المحدّثة في آخر تشغيل: ${data.updated_this_run??'—'} من أصل ${data.universe_count??'—'}`;
+    localStorage.setItem(LIQ_URL_KEY,url);
+  }catch(e){status.textContent='تعذر تحميل ملف السيولة: '+String(e.message||e)+' — تأكد من أن رابط JSON عام وصحيح.';}
+}
+(function initLiquidity(){const u=localStorage.getItem(LIQ_URL_KEY);if(u)document.getElementById('liqDataUrl').value=u;refreshLiquidity(false);setInterval(()=>refreshLiquidity(false),60000);})();
+
+// ── Enter key support ──────────────────────────────────────────────────────
+document.getElementById('tickerInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') analyze();
+});
+
+// ── Auto-load MU on start ──────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  document.getElementById('tickerInput').value = 'MU';
+  analyze();
+});
+</script>
+</body>
+</html>
